@@ -4,7 +4,7 @@
 	import { getContext, onMount, tick, onDestroy } from 'svelte';
 	import { config, pyodideWorker as pyodideWorkerStore } from '$lib/stores';
 
-	import PyodideWorker from '$lib/workers/pyodide.worker?worker';
+
 	import { executeCode } from '$lib/apis/utils';
 	import {
 		copyToClipboard,
@@ -49,7 +49,7 @@
 	export let editorClassName = '';
 	export let stickyButtonsClassName = 'top-0';
 
-	let localPyodideWorker = null;
+
 
 	let _code = '';
 	$: if (code) {
@@ -139,221 +139,11 @@
 		return false;
 	};
 
-	const executePython = async (code) => {
-		result = null;
-		stdout = null;
-		stderr = null;
-
-		executing = true;
-
-		if ($config?.code?.engine === 'jupyter') {
-			const output = await executeCode(localStorage.token, code).catch((error) => {
-				toast.error(`${error}`);
-				return null;
-			});
-
-			if (output) {
-				if (output['stdout']) {
-					stdout = output['stdout'];
-					const stdoutLines = stdout.split('\n');
-
-					for (const [idx, line] of stdoutLines.entries()) {
-						if (line.startsWith('data:image/png;base64')) {
-							if (files) {
-								files.push({
-									type: 'image/png',
-									data: line
-								});
-							} else {
-								files = [
-									{
-										type: 'image/png',
-										data: line
-									}
-								];
-							}
-
-							if (stdout.includes(`${line}\n`)) {
-								stdout = stdout.replace(`${line}\n`, ``);
-							} else if (stdout.includes(`${line}`)) {
-								stdout = stdout.replace(`${line}`, ``);
-							}
-						}
-					}
-				}
-
-				if (output['result']) {
-					result = output['result'];
-					const resultLines = result.split('\n');
-
-					for (const [idx, line] of resultLines.entries()) {
-						if (line.startsWith('data:image/png;base64')) {
-							if (files) {
-								files.push({
-									type: 'image/png',
-									data: line
-								});
-							} else {
-								files = [
-									{
-										type: 'image/png',
-										data: line
-									}
-								];
-							}
-
-							if (result.includes(`${line}\n`)) {
-								result = result.replace(`${line}\n`, ``);
-							} else if (result.includes(`${line}`)) {
-								result = result.replace(`${line}`, ``);
-							}
-						}
-					}
-				}
-
-				output['stderr'] && (stderr = output['stderr']);
-			}
-
-			executing = false;
-		} else {
-			executePythonAsWorker(code);
-		}
-	};
-
-	const executePythonAsWorker = async (code) => {
-		let packages = [
-			/\bimport\s+requests\b|\bfrom\s+requests\b/.test(code) ? 'requests' : null,
-			/\bimport\s+bs4\b|\bfrom\s+bs4\b/.test(code) ? 'beautifulsoup4' : null,
-			/\bimport\s+numpy\b|\bfrom\s+numpy\b/.test(code) ? 'numpy' : null,
-			/\bimport\s+pandas\b|\bfrom\s+pandas\b/.test(code) ? 'pandas' : null,
-			/\bimport\s+matplotlib\b|\bfrom\s+matplotlib\b/.test(code) ? 'matplotlib' : null,
-			/\bimport\s+seaborn\b|\bfrom\s+seaborn\b/.test(code) ? 'seaborn' : null,
-			/\bimport\s+sklearn\b|\bfrom\s+sklearn\b/.test(code) ? 'scikit-learn' : null,
-			/\bimport\s+scipy\b|\bfrom\s+scipy\b/.test(code) ? 'scipy' : null,
-			/\bimport\s+re\b|\bfrom\s+re\b/.test(code) ? 'regex' : null,
-			/\bimport\s+seaborn\b|\bfrom\s+seaborn\b/.test(code) ? 'seaborn' : null,
-			/\bimport\s+sympy\b|\bfrom\s+sympy\b/.test(code) ? 'sympy' : null,
-			/\bimport\s+tiktoken\b|\bfrom\s+tiktoken\b/.test(code) ? 'tiktoken' : null,
-			/\bimport\s+pytz\b|\bfrom\s+pytz\b/.test(code) ? 'pytz' : null
-		].filter(Boolean);
-
-		console.log(packages);
-
-		// Reuse the shared Pyodide worker when code interpreter is active,
-		// so files written here are immediately visible in PyodideFileNav.
-		// Otherwise fall back to a throwaway worker.
-		const sharedWorker = $pyodideWorkerStore;
-		const isShared = !!sharedWorker;
-		const worker = sharedWorker ?? new PyodideWorker();
-
-		if (!isShared) {
-			localPyodideWorker = worker;
-		}
-
-		worker.postMessage({
-			id: id,
-			code: code,
-			packages: packages
-		});
-
-		const timeoutId = setTimeout(() => {
-			if (executing) {
-				executing = false;
-				stderr = 'Execution Time Limit Exceeded';
-				if (!isShared) {
-					worker.terminate();
-					localPyodideWorker = null;
-				}
-			}
-		}, 60000);
-
-		const handler = (event) => {
-			// Ignore messages from other requests on the shared worker
-			if (event.data?.id !== id) return;
-
-			console.log('pyodideWorker.onmessage', event);
-			const { id: _id, ...data } = event.data;
-
-			console.log(_id, data);
-
-			if (data['stdout']) {
-				stdout = data['stdout'];
-				const stdoutLines = stdout.split('\n');
-
-				for (const [idx, line] of stdoutLines.entries()) {
-					if (line.startsWith('data:image/png;base64')) {
-						if (files) {
-							files.push({
-								type: 'image/png',
-								data: line
-							});
-						} else {
-							files = [
-								{
-									type: 'image/png',
-									data: line
-								}
-							];
-						}
-
-						if (stdout.includes(`${line}\n`)) {
-							stdout = stdout.replace(`${line}\n`, ``);
-						} else if (stdout.includes(`${line}`)) {
-							stdout = stdout.replace(`${line}`, ``);
-						}
-					}
-				}
-			}
-
-			if (data['result']) {
-				result = data['result'];
-				const resultLines = result.split('\n');
-
-				for (const [idx, line] of resultLines.entries()) {
-					if (line.startsWith('data:image/png;base64')) {
-						if (files) {
-							files.push({
-								type: 'image/png',
-								data: line
-							});
-						} else {
-							files = [
-								{
-									type: 'image/png',
-									data: line
-								}
-							];
-						}
-
-						if (result.startsWith(`${line}\n`)) {
-							result = result.replace(`${line}\n`, ``);
-						} else if (result.startsWith(`${line}`)) {
-							result = result.replace(`${line}`, ``);
-						}
-					}
-				}
-			}
-
-			data['stderr'] && (stderr = data['stderr']);
-			data['result'] && (result = data['result']);
-
-			clearTimeout(timeoutId);
-			worker.removeEventListener('message', handler);
-			executing = false;
-
-			// Signal PyodideFileNav to auto-refresh after execution
-			window.dispatchEvent(new Event('pyodide:files'));
+		const executePython = async (code) => {
+			toast.error('Code execution is disabled');
 		};
 
-		worker.addEventListener('message', handler);
 
-		worker.onerror = (event) => {
-			console.log('pyodideWorker.onerror', event);
-			clearTimeout(timeoutId);
-			worker.removeEventListener('message', handler);
-			executing = false;
-		};
-	};
 
 	let mermaid = null;
 	const renderMermaid = async (code) => {
@@ -424,12 +214,7 @@
 		}
 	});
 
-	onDestroy(() => {
-		if (localPyodideWorker) {
-			localPyodideWorker.terminate();
-			localPyodideWorker = null;
-		}
-	});
+
 </script>
 
 <div>

@@ -15,7 +15,7 @@
 
 	import { onMount, createEventDispatcher, getContext, tick, onDestroy } from 'svelte';
 
-	import PyodideWorker from '$lib/workers/pyodide.worker?worker';
+
 
 	import { formatPythonCode } from '$lib/apis/utils';
 	import { toast } from 'svelte-sonner';
@@ -92,89 +92,9 @@
 		return await language?.load();
 	};
 
-	let pyodideWorkerInstance = null;
-
-	const getPyodideWorker = () => {
-		if (!pyodideWorkerInstance) {
-			pyodideWorkerInstance = new PyodideWorker(); // Your worker constructor
-		}
-		return pyodideWorkerInstance;
-	};
-
-	// Generate unique IDs for requests
-	let _formatReqId = 0;
-
-	const formatPythonCodePyodide = (code) => {
-		return new Promise((resolve, reject) => {
-			const id = `format-${++_formatReqId}`;
-			let timeout;
-			const worker = getPyodideWorker();
-
-			const startTag = `--||CODE-START-${id}||--`;
-			const endTag = `--||CODE-END-${id}||--`;
-
-			const script = `
-import black
-print("${startTag}")
-print(black.format_str("""${code.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/"/g, '\\"')}""", mode=black.Mode()))
-print("${endTag}")
-`;
-
-			const packages = ['black'];
-
-			function handleMessage(event) {
-				const { id: eventId, stdout, stderr } = event.data;
-				if (eventId !== id) return; // Only handle our message
-				clearTimeout(timeout);
-				worker.removeEventListener('message', handleMessage);
-				worker.removeEventListener('error', handleError);
-
-				if (stderr) {
-					reject(stderr);
-				} else {
-					function extractBetweenDelimiters(stdout, start, end) {
-						console.log('stdout', stdout);
-						const startIdx = stdout.indexOf(start);
-						const endIdx = stdout.indexOf(end, startIdx + start.length);
-						if (startIdx === -1 || endIdx === -1) return null;
-						return stdout.slice(startIdx + start.length, endIdx).trim();
-					}
-
-					const formatted = extractBetweenDelimiters(
-						stdout && typeof stdout === 'string' ? stdout : '',
-						startTag,
-						endTag
-					);
-
-					resolve({ code: formatted });
-				}
-			}
-
-			function handleError(event) {
-				clearTimeout(timeout);
-				worker.removeEventListener('message', handleMessage);
-				worker.removeEventListener('error', handleError);
-				reject(event.message || 'Pyodide worker error');
-			}
-
-			worker.addEventListener('message', handleMessage);
-			worker.addEventListener('error', handleError);
-
-			// Send to worker
-			worker.postMessage({ id, code: script, packages });
-
-			// Timeout
-			timeout = setTimeout(() => {
-				worker.removeEventListener('message', handleMessage);
-				worker.removeEventListener('error', handleError);
-				try {
-					worker.terminate();
-				} catch {}
-				pyodideWorkerInstance = null;
-				reject('Execution Time Limit Exceeded');
-			}, 60000);
-		});
-	};
+		const formatPythonCodePyodide = (code) => {
+			return Promise.reject('Pyodide is disabled');
+		};
 
 	export const formatPythonCodeHandler = async () => {
 		if (codeEditor) {
@@ -311,11 +231,7 @@ print("${endTag}")
 		};
 	});
 
-	onDestroy(() => {
-		if (pyodideWorkerInstance) {
-			pyodideWorkerInstance.terminate();
-		}
-	});
+
 </script>
 
 <div id="code-textarea-{id}" class="h-full w-full text-sm" />
