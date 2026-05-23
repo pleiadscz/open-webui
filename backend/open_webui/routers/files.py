@@ -43,7 +43,6 @@ from open_webui.models.access_grants import AccessGrants
 
 
 from open_webui.routers.retrieval import ProcessFileForm, process_file
-from open_webui.routers.audio import transcribe
 
 from open_webui.storage.provider import Storage
 
@@ -121,25 +120,7 @@ async def process_uploaded_file(
                     content_type = 'text/plain'
 
             if content_type:
-                stt_supported_content_types = getattr(request.app.state.config, 'STT_SUPPORTED_CONTENT_TYPES', [])
-
-                if strict_match_mime_type(stt_supported_content_types, content_type):
-                    file_path_processed = await asyncio.to_thread(Storage.get_file, file_path)
-                    result = await asyncio.to_thread(
-                        transcribe,
-                        request,
-                        file_path_processed,
-                        file_metadata,
-                        user,
-                    )
-
-                    await process_file(
-                        request,
-                        ProcessFileForm(file_id=file_item.id, content=result.get('text', '')),
-                        user=user,
-                        db=db_session,
-                    )
-                elif (not content_type.startswith(('image/', 'video/'))) or (
+                if (not content_type.startswith(('image/', 'video/'))) or (
                     request.app.state.config.CONTENT_EXTRACTION_ENGINE == 'external'
                 ):
                     await process_file(
@@ -445,162 +426,7 @@ async def get_file_by_id(id: str, user=Depends(get_verified_user), db: AsyncSess
             detail=ERROR_MESSAGES.NOT_FOUND,
         )
 
-    if file.user_id == user.id or user.role == 'admin' or await has_access_to_file(id, 'read', user, db=db):
-        return file
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=ERROR_MESSAGES.NOT_FOUND,
-        )
-
-
-@router.get('/{id}/process/status')
-async def get_file_process_status(
-    id: str,
-    stream: bool = Query(False),
-    user=Depends(get_verified_user),
-    db: AsyncSession = Depends(get_async_session),
-):
-    file = await Files.get_file_by_id(id, db=db)
-
-    if not file:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=ERROR_MESSAGES.NOT_FOUND,
-        )
-
-    if file.user_id == user.id or user.role == 'admin' or await has_access_to_file(id, 'read', user, db=db):
-        if stream:
-            MAX_FILE_PROCESSING_DURATION = 3600 * 2
-
-            async def event_stream(file_id):
-                # NOTE: We intentionally do NOT capture the request's db session here.
-                # Each poll creates its own short-lived session to avoid holding a
-                # connection for hours. A WebSocket push would be more efficient.
-                for _ in range(MAX_FILE_PROCESSING_DURATION):
-                    file_item = await Files.get_file_by_id(file_id)  # Creates own session
-                    if file_item:
-                        data = file_item.model_dump().get('data', {})
-                        status = data.get('status')
-
-                        if status:
-                            event = {'status': status}
-                            if status == 'failed':
-                                event['error'] = data.get('error')
-
-                            yield f'data: {json.dumps(event)}\n\n'
-                            if status in ('completed', 'failed'):
-                                break
-                        else:
-                            # Legacy
-                            break
-                    else:
-                        yield f'data: {json.dumps({"status": "not_found"})}\n\n'
-                        break
-
-                    await asyncio.sleep(1)
-
-            return StreamingResponse(
-                event_stream(file.id),
-                media_type='text/event-stream',
-            )
-        else:
-            return {'status': file.data.get('status', 'pending')}
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=ERROR_MESSAGES.NOT_FOUND,
-        )
-
-
-############################
-# Get File Data Content By Id
-############################
-
-
-@router.get('/{id}/data/content')
-async def get_file_data_content_by_id(
-    id: str, user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)
-):
-    file = await Files.get_file_by_id(id, db=db)
-
-    if not file:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=ERROR_MESSAGES.NOT_FOUND,
-        )
-
-    if file.user_id == user.id or user.role == 'admin' or await has_access_to_file(id, 'read', user, db=db):
-        return {'content': file.data.get('content', '')}
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=ERROR_MESSAGES.NOT_FOUND,
-        )
-
-
-############################
-# Update File Data Content By Id
-############################
-
-
-class ContentForm(BaseModel):
-    content: str
-
-
-@router.post('/{id}/data/content/update')
-async def update_file_data_content_by_id(
-    request: Request,
-    id: str,
-    form_data: ContentForm,
-    user=Depends(get_verified_user),
-    db: AsyncSession = Depends(get_async_session),
-):
-    file = await Files.get_file_by_id(id, db=db)
-
-    if not file:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=ERROR_MESSAGES.NOT_FOUND,
-        )
-
-    if file.user_id == user.id or user.role == 'admin' or await has_access_to_file(id, 'write', user, db=db):
-        try:
-            await process_file(
-                request,
-                ProcessFileForm(file_id=id, content=form_data.content),
-                user=user,
-                db=db,
-            )
-            file = await Files.get_file_by_id(id=id, db=db)
-        except Exception as e:
-            log.exception(e)
-            log.error(f'Error processing file: {file.id}')
-
-        # Propagate content change to all knowledge collections referencing
-        # this file.  Without this the old embeddings remain in the knowledge
-        # collection and RAG returns both stale and current data (#20558).
-        knowledges = await Knowledges.get_knowledges_by_file_id(id, db=db)
-        for knowledge in knowledges:
-            try:
-                # Remove old embeddings for this file from the KB collection
-                await ASYNC_VECTOR_DB_CLIENT.delete(collection_name=knowledge.id, filter={'file_id': id})
-                # Re-add from the now-updated file-{file_id} collection
-                await process_file(
-                    request,
-                    ProcessFileForm(file_id=id, collection_name=knowledge.id),
-                    user=user,
-                    db=db,
-                )
-            except Exception as e:
-                log.warning(f'Failed to update knowledge {knowledge.id} after content change for file {id}: {e}')
-
-        return {'content': file.data.get('content', '')}
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=ERROR_MESSAGES.NOT_FOUND,
-        )
+    return file
 
 
 ############################
@@ -609,11 +435,33 @@ async def update_file_data_content_by_id(
 
 
 @router.get('/{id}/content')
-async def get_file_content_by_id(
-    id: str,
-    user=Depends(get_verified_user),
-    attachment: bool = Query(False),
-    db: AsyncSession = Depends(get_async_session),
+async def get_file_content_by_id(id: str, user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)):
+    file = await Files.get_file_by_id(id, db=db)
+
+    if not file:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ERROR_MESSAGES.NOT_FOUND,
+        )
+
+    if not has_access_to_file(user, file):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
+        )
+
+    if file.data and 'content' in file.data:
+        return {'content': file.data['content']}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ERROR_MESSAGES.NOT_FOUND,
+        )
+
+
+@router.get('/{id}/content/{file_path:path}')
+async def get_file_content_by_id_and_path(
+    id: str, file_path: str, user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)
 ):
     file = await Files.get_file_by_id(id, db=db)
 
@@ -623,163 +471,22 @@ async def get_file_content_by_id(
             detail=ERROR_MESSAGES.NOT_FOUND,
         )
 
-    if file.user_id == user.id or user.role == 'admin' or await has_access_to_file(id, 'read', user, db=db):
-        try:
-            file_path = await asyncio.to_thread(Storage.get_file, file.path)
-            file_path = Path(file_path)
-
-            # Check if the file already exists in the cache
-            if file_path.is_file():
-                # Handle Unicode filenames
-                filename = file.meta.get('name', file.filename)
-                encoded_filename = quote(filename)  # RFC5987 encoding
-
-                content_type = file.meta.get('content_type')
-                filename = file.meta.get('name', file.filename)
-                encoded_filename = quote(filename)
-                headers = {}
-
-                if attachment:
-                    headers['Content-Disposition'] = f"attachment; filename*=UTF-8''{encoded_filename}"
-                else:
-                    if content_type == 'application/pdf' or filename.lower().endswith('.pdf'):
-                        headers['Content-Disposition'] = f"inline; filename*=UTF-8''{encoded_filename}"
-                        content_type = 'application/pdf'
-                    elif content_type != 'text/plain':
-                        headers['Content-Disposition'] = f"attachment; filename*=UTF-8''{encoded_filename}"
-
-                return FileResponse(file_path, headers=headers, media_type=content_type)
-
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=ERROR_MESSAGES.NOT_FOUND,
-                )
-        except HTTPException as e:
-            raise e
-        except Exception as e:
-            log.exception(e)
-            log.error('Error getting file content')
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=ERROR_MESSAGES.DEFAULT('Error getting file content'),
-            )
-    else:
+    if not has_access_to_file(user, file):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=ERROR_MESSAGES.NOT_FOUND,
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
         )
 
-
-@router.get('/{id}/content/html')
-async def get_html_file_content_by_id(
-    id: str, user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)
-):
-    file = await Files.get_file_by_id(id, db=db)
-
-    if not file:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=ERROR_MESSAGES.NOT_FOUND,
-        )
-
-    file_user = await Users.get_user_by_id(file.user_id, db=db)
-    if not file_user or file_user.role != 'admin':
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=ERROR_MESSAGES.NOT_FOUND,
-        )
-
-    if file.user_id == user.id or user.role == 'admin' or await has_access_to_file(id, 'read', user, db=db):
-        try:
-            file_path = await asyncio.to_thread(Storage.get_file, file.path)
-            file_path = Path(file_path)
-
-            # Check if the file already exists in the cache
-            if file_path.is_file():
-                log.info(f'file_path: {file_path}')
-                return FileResponse(file_path)
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=ERROR_MESSAGES.NOT_FOUND,
-                )
-        except HTTPException as e:
-            raise e
-        except Exception as e:
-            log.exception(e)
-            log.error('Error getting file content')
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=ERROR_MESSAGES.DEFAULT('Error getting file content'),
-            )
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=ERROR_MESSAGES.NOT_FOUND,
-        )
-
-
-@router.get('/{id}/content/{file_name}')
-async def get_file_content_by_id(
-    id: str, user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)
-):
-    file = await Files.get_file_by_id(id, db=db)
-
-    if not file:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=ERROR_MESSAGES.NOT_FOUND,
-        )
-
-    if file.user_id == user.id or user.role == 'admin' or await has_access_to_file(id, 'read', user, db=db):
-        file_path = file.path
-
-        # Handle Unicode filenames
-        filename = file.meta.get('name', file.filename)
-        encoded_filename = quote(filename)  # RFC5987 encoding
-        headers = {'Content-Disposition': f"attachment; filename*=UTF-8''{encoded_filename}"}
-
-        if file_path:
-            file_path = await asyncio.to_thread(Storage.get_file, file_path)
-            file_path = Path(file_path)
-
-            # Check if the file already exists in the cache
-            if file_path.is_file():
-                return FileResponse(file_path, headers=headers)
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=ERROR_MESSAGES.NOT_FOUND,
-                )
-        else:
-            # File path doesn’t exist, return the content as .txt if possible
-            file_content = file.data.get('content', '')
-            file_name = file.filename
-
-            # Create a generator that encodes the file content
-            def generator():
-                yield file_content.encode('utf-8')
-
-            return StreamingResponse(
-                generator(),
-                media_type='text/plain',
-                headers=headers,
-            )
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=ERROR_MESSAGES.NOT_FOUND,
-        )
+    return {'content': 'Content not found'}
 
 
 ############################
-# Delete File By Id
+# Download File By Id
 ############################
 
 
-@router.delete('/{id}')
-async def delete_file_by_id(id: str, user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)):
+@router.get('/{id}/download')
+async def download_file_by_id(id: str, user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)):
     file = await Files.get_file_by_id(id, db=db)
 
     if not file:
@@ -788,38 +495,20 @@ async def delete_file_by_id(id: str, user=Depends(get_verified_user), db: AsyncS
             detail=ERROR_MESSAGES.NOT_FOUND,
         )
 
-    if file.user_id == user.id or user.role == 'admin' or await has_access_to_file(id, 'write', user, db=db):
-        # Clean up KB associations and embeddings before deleting
-        knowledges = await Knowledges.get_knowledges_by_file_id(id, db=db)
-        for knowledge in knowledges:
-            # Remove KB-file relationship
-            await Knowledges.remove_file_from_knowledge_by_id(knowledge.id, id, db=db)
-            # Clean KB embeddings (same logic as /knowledge/{id}/file/remove)
-            try:
-                await ASYNC_VECTOR_DB_CLIENT.delete(collection_name=knowledge.id, filter={'file_id': id})
-                if file.hash:
-                    await ASYNC_VECTOR_DB_CLIENT.delete(collection_name=knowledge.id, filter={'hash': file.hash})
-            except Exception as e:
-                log.debug(f'KB embedding cleanup for {knowledge.id}: {e}')
+    if not has_access_to_file(user, file):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
+        )
 
-        result = await Files.delete_file_by_id(id, db=db)
-        if result:
-            try:
-                await asyncio.to_thread(Storage.delete_file, file.path)
-                await ASYNC_VECTOR_DB_CLIENT.delete(collection_name=f'file-{id}')
-            except Exception as e:
-                log.exception(e)
-                log.error('Error deleting files')
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=ERROR_MESSAGES.DEFAULT('Error deleting files'),
-                )
-            return {'message': 'File deleted successfully'}
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=ERROR_MESSAGES.DEFAULT('Error deleting file'),
-            )
+    file_path = await asyncio.to_thread(Storage.get_file, file.path)
+
+    if os.path.isfile(file_path):
+        return FileResponse(
+            path=file_path,
+            filename=file.filename,
+            media_type='application/octet-stream',
+        )
     else:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
