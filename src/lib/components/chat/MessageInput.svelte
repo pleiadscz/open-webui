@@ -137,6 +137,7 @@ import { Plus, ArrowUp, Square, Globe } from 'lucide-svelte';
 
 	export let imageGenerationEnabled = false;
 	export let webSearchEnabled = false;
+	export let codeInterpreterEnabled = false;
 
 
 	export let pendingOAuthTools = [];
