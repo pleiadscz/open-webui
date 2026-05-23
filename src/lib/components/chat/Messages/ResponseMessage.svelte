@@ -24,7 +24,7 @@
 		TTSWorker,
 		user
 	} from '$lib/stores';
-	import { synthesizeOpenAISpeech } from '$lib/apis/audio';
+	import { synthesizeOpenAISpeech } from '$lib/apis/openai';
 	import { imageGenerations } from '$lib/apis/images';
 	import {
 		copyToClipboard as _copyToClipboard,
