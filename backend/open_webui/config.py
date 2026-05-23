@@ -1516,11 +1516,7 @@ USER_PERMISSIONS_CHAT_ALLOW_PUBLIC_SHARING = (
 
 USER_PERMISSIONS_CHAT_EXPORT = os.environ.get('USER_PERMISSIONS_CHAT_EXPORT', 'True').lower() == 'true'
 
-USER_PERMISSIONS_CHAT_STT = os.environ.get('USER_PERMISSIONS_CHAT_STT', 'True').lower() == 'true'
 
-USER_PERMISSIONS_CHAT_TTS = os.environ.get('USER_PERMISSIONS_CHAT_TTS', 'True').lower() == 'true'
-
-USER_PERMISSIONS_CHAT_CALL = os.environ.get('USER_PERMISSIONS_CHAT_CALL', 'True').lower() == 'true'
 
 USER_PERMISSIONS_CHAT_MULTIPLE_MODELS = (
     os.environ.get('USER_PERMISSIONS_CHAT_MULTIPLE_MODELS', 'True').lower() == 'true'
@@ -1543,9 +1539,7 @@ USER_PERMISSIONS_FEATURES_IMAGE_GENERATION = (
     os.environ.get('USER_PERMISSIONS_FEATURES_IMAGE_GENERATION', 'True').lower() == 'true'
 )
 
-USER_PERMISSIONS_FEATURES_CODE_INTERPRETER = (
-    os.environ.get('USER_PERMISSIONS_FEATURES_CODE_INTERPRETER', 'True').lower() == 'true'
-)
+
 
 USER_PERMISSIONS_FEATURES_FOLDERS = os.environ.get('USER_PERMISSIONS_FEATURES_FOLDERS', 'True').lower() == 'true'
 
@@ -1615,9 +1609,7 @@ DEFAULT_USER_PERMISSIONS = {
         'edit': USER_PERMISSIONS_CHAT_EDIT,
         'share': USER_PERMISSIONS_CHAT_SHARE,
         'export': USER_PERMISSIONS_CHAT_EXPORT,
-        'stt': USER_PERMISSIONS_CHAT_STT,
-        'tts': USER_PERMISSIONS_CHAT_TTS,
-        'call': USER_PERMISSIONS_CHAT_CALL,
+
         'multiple_models': USER_PERMISSIONS_CHAT_MULTIPLE_MODELS,
         'temporary': USER_PERMISSIONS_CHAT_TEMPORARY,
         'temporary_enforced': USER_PERMISSIONS_CHAT_TEMPORARY_ENFORCED,
@@ -1632,7 +1624,7 @@ DEFAULT_USER_PERMISSIONS = {
         # Chat features
         'web_search': USER_PERMISSIONS_FEATURES_WEB_SEARCH,
         'image_generation': USER_PERMISSIONS_FEATURES_IMAGE_GENERATION,
-        'code_interpreter': USER_PERMISSIONS_FEATURES_CODE_INTERPRETER,
+
         'memories': USER_PERMISSIONS_FEATURES_MEMORIES,
         'automations': USER_PERMISSIONS_FEATURES_AUTOMATIONS,
         'calendar': USER_PERMISSIONS_FEATURES_CALENDAR,
@@ -2163,144 +2155,11 @@ Your task is to synthesize these responses into a single, high-quality response.
 Responses from models: {{responses}}"""
 
 
-####################################
-# Code Interpreter
-####################################
-
-ENABLE_CODE_EXECUTION = PersistentConfig(
-    'ENABLE_CODE_EXECUTION',
-    'code_execution.enable',
-    os.environ.get('ENABLE_CODE_EXECUTION', 'True').lower() == 'true',
-)
-
-CODE_EXECUTION_ENGINE = PersistentConfig(
-    'CODE_EXECUTION_ENGINE',
-    'code_execution.engine',
-    os.environ.get('CODE_EXECUTION_ENGINE', 'jupyter'),
-)
-
-CODE_EXECUTION_JUPYTER_URL = PersistentConfig(
-    'CODE_EXECUTION_JUPYTER_URL',
-    'code_execution.jupyter.url',
-    os.environ.get('CODE_EXECUTION_JUPYTER_URL', ''),
-)
-
-CODE_EXECUTION_JUPYTER_AUTH = PersistentConfig(
-    'CODE_EXECUTION_JUPYTER_AUTH',
-    'code_execution.jupyter.auth',
-    os.environ.get('CODE_EXECUTION_JUPYTER_AUTH', ''),
-)
-
-CODE_EXECUTION_JUPYTER_AUTH_TOKEN = PersistentConfig(
-    'CODE_EXECUTION_JUPYTER_AUTH_TOKEN',
-    'code_execution.jupyter.auth_token',
-    os.environ.get('CODE_EXECUTION_JUPYTER_AUTH_TOKEN', ''),
-)
-
-
-CODE_EXECUTION_JUPYTER_AUTH_PASSWORD = PersistentConfig(
-    'CODE_EXECUTION_JUPYTER_AUTH_PASSWORD',
-    'code_execution.jupyter.auth_password',
-    os.environ.get('CODE_EXECUTION_JUPYTER_AUTH_PASSWORD', ''),
-)
-
-CODE_EXECUTION_JUPYTER_TIMEOUT = PersistentConfig(
-    'CODE_EXECUTION_JUPYTER_TIMEOUT',
-    'code_execution.jupyter.timeout',
-    int(os.environ.get('CODE_EXECUTION_JUPYTER_TIMEOUT', '60')),
-)
-
-ENABLE_CODE_INTERPRETER = PersistentConfig(
-    'ENABLE_CODE_INTERPRETER',
-    'code_interpreter.enable',
-    os.environ.get('ENABLE_CODE_INTERPRETER', 'True').lower() == 'true',
-)
-
 ENABLE_MEMORIES = PersistentConfig(
     'ENABLE_MEMORIES',
     'memories.enable',
     os.environ.get('ENABLE_MEMORIES', 'True').lower() == 'true',
 )
-
-CODE_INTERPRETER_ENGINE = PersistentConfig(
-    'CODE_INTERPRETER_ENGINE',
-    'code_interpreter.engine',
-    os.environ.get('CODE_INTERPRETER_ENGINE', 'jupyter'),
-)
-
-CODE_INTERPRETER_PROMPT_TEMPLATE = PersistentConfig(
-    'CODE_INTERPRETER_PROMPT_TEMPLATE',
-    'code_interpreter.prompt_template',
-    os.environ.get('CODE_INTERPRETER_PROMPT_TEMPLATE', ''),
-)
-
-CODE_INTERPRETER_JUPYTER_URL = PersistentConfig(
-    'CODE_INTERPRETER_JUPYTER_URL',
-    'code_interpreter.jupyter.url',
-    os.environ.get('CODE_INTERPRETER_JUPYTER_URL', os.environ.get('CODE_EXECUTION_JUPYTER_URL', '')),
-)
-
-CODE_INTERPRETER_JUPYTER_AUTH = PersistentConfig(
-    'CODE_INTERPRETER_JUPYTER_AUTH',
-    'code_interpreter.jupyter.auth',
-    os.environ.get(
-        'CODE_INTERPRETER_JUPYTER_AUTH',
-        os.environ.get('CODE_EXECUTION_JUPYTER_AUTH', ''),
-    ),
-)
-
-CODE_INTERPRETER_JUPYTER_AUTH_TOKEN = PersistentConfig(
-    'CODE_INTERPRETER_JUPYTER_AUTH_TOKEN',
-    'code_interpreter.jupyter.auth_token',
-    os.environ.get(
-        'CODE_INTERPRETER_JUPYTER_AUTH_TOKEN',
-        os.environ.get('CODE_EXECUTION_JUPYTER_AUTH_TOKEN', ''),
-    ),
-)
-
-
-CODE_INTERPRETER_JUPYTER_AUTH_PASSWORD = PersistentConfig(
-    'CODE_INTERPRETER_JUPYTER_AUTH_PASSWORD',
-    'code_interpreter.jupyter.auth_password',
-    os.environ.get(
-        'CODE_INTERPRETER_JUPYTER_AUTH_PASSWORD',
-        os.environ.get('CODE_EXECUTION_JUPYTER_AUTH_PASSWORD', ''),
-    ),
-)
-
-CODE_INTERPRETER_JUPYTER_TIMEOUT = PersistentConfig(
-    'CODE_INTERPRETER_JUPYTER_TIMEOUT',
-    'code_interpreter.jupyter.timeout',
-    int(
-        os.environ.get(
-            'CODE_INTERPRETER_JUPYTER_TIMEOUT',
-            os.environ.get('CODE_EXECUTION_JUPYTER_TIMEOUT', '60'),
-        )
-    ),
-)
-
-CODE_INTERPRETER_BLOCKED_MODULES = [
-    library.strip() for library in os.environ.get('CODE_INTERPRETER_BLOCKED_MODULES', '').split(',') if library.strip()
-]
-
-DEFAULT_CODE_INTERPRETER_PROMPT = """
-#### Code Interpreter
-
-You have access to a Python code interpreter via: `<code_interpreter type="code" lang="python"></code_interpreter>`
-
-- The Python shell runs directly in the user's browser for fast execution of analysis, calculations, or problem-solving. Use it in this response.
-- You can use a wide array of libraries for data manipulation, visualization, API calls, or any computational task. Think outside the box and harness Python's full potential.
-- **You must enclose your code within `<code_interpreter type="code" lang="python">` XML tags** and stop right away. If you don't, the code won't execute.
-- Do NOT use triple backticks (```py ... ```) inside the XML tags — that is markdown formatting, not executable Python code.
-- **Always print meaningful outputs** (results, tables, summaries, visuals). Avoid implicit outputs; use explicit print statements.
-- After obtaining output, **provide a concise analysis, interpretation, or next steps** to help the user understand the findings.
-- If results are unclear or unexpected, refine the code and re-execute. Iterate until you deliver meaningful insights.
-- **If a link to an image, audio, or any file appears in the output, display it exactly as-is** in your response so the user can access it. Do not modify the link.
-- Respond in the chat's primary language. Default to English if multilingual.
-
-Ensure the code interpreter is effectively utilized to achieve the highest-quality analysis for the user."""
-
-CODE_INTERPRETER_PYODIDE_PROMPT = ""
 
 
 ####################################
@@ -3924,216 +3783,7 @@ IMAGES_EDIT_COMFYUI_WORKFLOW_NODES = PersistentConfig(
     images_edit_comfyui_workflow_nodes,
 )
 
-####################################
-# Audio
-####################################
 
-# Transcription
-WHISPER_MODEL = PersistentConfig(
-    'WHISPER_MODEL',
-    'audio.stt.whisper_model',
-    os.getenv('WHISPER_MODEL', 'base'),
-)
-
-WHISPER_COMPUTE_TYPE = os.getenv('WHISPER_COMPUTE_TYPE', 'int8')
-WHISPER_MODEL_DIR = os.getenv('WHISPER_MODEL_DIR', f'{CACHE_DIR}/whisper/models')
-WHISPER_MODEL_AUTO_UPDATE = not OFFLINE_MODE and os.environ.get('WHISPER_MODEL_AUTO_UPDATE', '').lower() == 'true'
-
-WHISPER_VAD_FILTER = os.getenv('WHISPER_VAD_FILTER', 'False').lower() == 'true'
-
-WHISPER_MULTILINGUAL = os.getenv('WHISPER_MULTILINGUAL', 'False').lower() == 'true'
-
-WHISPER_LANGUAGE = os.getenv('WHISPER_LANGUAGE', '').lower() or None
-
-# Add Deepgram configuration
-DEEPGRAM_API_KEY = PersistentConfig(
-    'DEEPGRAM_API_KEY',
-    'audio.stt.deepgram.api_key',
-    os.getenv('DEEPGRAM_API_KEY', ''),
-)
-
-# ElevenLabs configuration
-ELEVENLABS_API_BASE_URL = os.getenv('ELEVENLABS_API_BASE_URL', 'https://api.elevenlabs.io')
-
-AUDIO_STT_OPENAI_API_BASE_URL = PersistentConfig(
-    'AUDIO_STT_OPENAI_API_BASE_URL',
-    'audio.stt.openai.api_base_url',
-    os.getenv('AUDIO_STT_OPENAI_API_BASE_URL', OPENAI_API_BASE_URL),
-)
-
-AUDIO_STT_OPENAI_API_KEY = PersistentConfig(
-    'AUDIO_STT_OPENAI_API_KEY',
-    'audio.stt.openai.api_key',
-    os.getenv('AUDIO_STT_OPENAI_API_KEY', OPENAI_API_KEY),
-)
-
-AUDIO_STT_ENGINE = PersistentConfig(
-    'AUDIO_STT_ENGINE',
-    'audio.stt.engine',
-    os.getenv('AUDIO_STT_ENGINE', ''),
-)
-
-AUDIO_STT_MODEL = PersistentConfig(
-    'AUDIO_STT_MODEL',
-    'audio.stt.model',
-    os.getenv('AUDIO_STT_MODEL', ''),
-)
-
-AUDIO_STT_SUPPORTED_CONTENT_TYPES = PersistentConfig(
-    'AUDIO_STT_SUPPORTED_CONTENT_TYPES',
-    'audio.stt.supported_content_types',
-    [
-        content_type.strip()
-        for content_type in os.environ.get('AUDIO_STT_SUPPORTED_CONTENT_TYPES', '').split(',')
-        if content_type.strip()
-    ],
-)
-
-AUDIO_STT_ALLOWED_EXTENSIONS = PersistentConfig(
-    'AUDIO_STT_ALLOWED_EXTENSIONS',
-    'audio.stt.allowed_extensions',
-    [
-        ext.strip()
-        for ext in os.environ.get(
-            'AUDIO_STT_ALLOWED_EXTENSIONS',
-            'mp3,wav,m4a,webm,ogg,flac,mp4,mpga,mpeg',
-        ).split(',')
-        if ext.strip()
-    ],
-)
-
-AUDIO_STT_AZURE_API_KEY = PersistentConfig(
-    'AUDIO_STT_AZURE_API_KEY',
-    'audio.stt.azure.api_key',
-    os.getenv('AUDIO_STT_AZURE_API_KEY', ''),
-)
-
-AUDIO_STT_AZURE_REGION = PersistentConfig(
-    'AUDIO_STT_AZURE_REGION',
-    'audio.stt.azure.region',
-    os.getenv('AUDIO_STT_AZURE_REGION', ''),
-)
-
-AUDIO_STT_AZURE_LOCALES = PersistentConfig(
-    'AUDIO_STT_AZURE_LOCALES',
-    'audio.stt.azure.locales',
-    os.getenv('AUDIO_STT_AZURE_LOCALES', ''),
-)
-
-AUDIO_STT_AZURE_BASE_URL = PersistentConfig(
-    'AUDIO_STT_AZURE_BASE_URL',
-    'audio.stt.azure.base_url',
-    os.getenv('AUDIO_STT_AZURE_BASE_URL', ''),
-)
-
-AUDIO_STT_AZURE_MAX_SPEAKERS = PersistentConfig(
-    'AUDIO_STT_AZURE_MAX_SPEAKERS',
-    'audio.stt.azure.max_speakers',
-    os.getenv('AUDIO_STT_AZURE_MAX_SPEAKERS', ''),
-)
-
-AUDIO_STT_MISTRAL_API_KEY = PersistentConfig(
-    'AUDIO_STT_MISTRAL_API_KEY',
-    'audio.stt.mistral.api_key',
-    os.getenv('AUDIO_STT_MISTRAL_API_KEY', ''),
-)
-
-AUDIO_STT_MISTRAL_API_BASE_URL = PersistentConfig(
-    'AUDIO_STT_MISTRAL_API_BASE_URL',
-    'audio.stt.mistral.api_base_url',
-    os.getenv('AUDIO_STT_MISTRAL_API_BASE_URL', 'https://api.mistral.ai/v1'),
-)
-
-AUDIO_STT_MISTRAL_USE_CHAT_COMPLETIONS = PersistentConfig(
-    'AUDIO_STT_MISTRAL_USE_CHAT_COMPLETIONS',
-    'audio.stt.mistral.use_chat_completions',
-    os.getenv('AUDIO_STT_MISTRAL_USE_CHAT_COMPLETIONS', 'false').lower() == 'true',
-)
-
-AUDIO_TTS_OPENAI_API_BASE_URL = PersistentConfig(
-    'AUDIO_TTS_OPENAI_API_BASE_URL',
-    'audio.tts.openai.api_base_url',
-    os.getenv('AUDIO_TTS_OPENAI_API_BASE_URL', OPENAI_API_BASE_URL),
-)
-AUDIO_TTS_OPENAI_API_KEY = PersistentConfig(
-    'AUDIO_TTS_OPENAI_API_KEY',
-    'audio.tts.openai.api_key',
-    os.getenv('AUDIO_TTS_OPENAI_API_KEY', OPENAI_API_KEY),
-)
-
-audio_tts_openai_params = os.getenv('AUDIO_TTS_OPENAI_PARAMS', '')
-try:
-    audio_tts_openai_params = json.loads(audio_tts_openai_params)
-except json.JSONDecodeError:
-    audio_tts_openai_params = {}
-
-AUDIO_TTS_OPENAI_PARAMS = PersistentConfig(
-    'AUDIO_TTS_OPENAI_PARAMS',
-    'audio.tts.openai.params',
-    audio_tts_openai_params,
-)
-
-
-AUDIO_TTS_API_KEY = PersistentConfig(
-    'AUDIO_TTS_API_KEY',
-    'audio.tts.api_key',
-    os.getenv('AUDIO_TTS_API_KEY', ''),
-)
-
-AUDIO_TTS_ENGINE = PersistentConfig(
-    'AUDIO_TTS_ENGINE',
-    'audio.tts.engine',
-    os.getenv('AUDIO_TTS_ENGINE', ''),
-)
-
-
-AUDIO_TTS_MODEL = PersistentConfig(
-    'AUDIO_TTS_MODEL',
-    'audio.tts.model',
-    os.getenv('AUDIO_TTS_MODEL', 'tts-1'),  # OpenAI default model
-)
-
-AUDIO_TTS_VOICE = PersistentConfig(
-    'AUDIO_TTS_VOICE',
-    'audio.tts.voice',
-    os.getenv('AUDIO_TTS_VOICE', 'alloy'),  # OpenAI default voice
-)
-
-AUDIO_TTS_SPLIT_ON = PersistentConfig(
-    'AUDIO_TTS_SPLIT_ON',
-    'audio.tts.split_on',
-    os.getenv('AUDIO_TTS_SPLIT_ON', 'punctuation'),
-)
-
-AUDIO_TTS_AZURE_SPEECH_REGION = PersistentConfig(
-    'AUDIO_TTS_AZURE_SPEECH_REGION',
-    'audio.tts.azure.speech_region',
-    os.getenv('AUDIO_TTS_AZURE_SPEECH_REGION', ''),
-)
-
-AUDIO_TTS_AZURE_SPEECH_BASE_URL = PersistentConfig(
-    'AUDIO_TTS_AZURE_SPEECH_BASE_URL',
-    'audio.tts.azure.speech_base_url',
-    os.getenv('AUDIO_TTS_AZURE_SPEECH_BASE_URL', ''),
-)
-
-AUDIO_TTS_AZURE_SPEECH_OUTPUT_FORMAT = PersistentConfig(
-    'AUDIO_TTS_AZURE_SPEECH_OUTPUT_FORMAT',
-    'audio.tts.azure.speech_output_format',
-    os.getenv('AUDIO_TTS_AZURE_SPEECH_OUTPUT_FORMAT', 'audio-24khz-160kbitrate-mono-mp3'),
-)
-
-AUDIO_TTS_MISTRAL_API_KEY = PersistentConfig(
-    'AUDIO_TTS_MISTRAL_API_KEY',
-    'audio.tts.mistral.api_key',
-    os.getenv('AUDIO_TTS_MISTRAL_API_KEY', ''),
-)
-
-AUDIO_TTS_MISTRAL_API_BASE_URL = PersistentConfig(
-    'AUDIO_TTS_MISTRAL_API_BASE_URL',
-    'audio.tts.mistral.api_base_url',
-    os.getenv('AUDIO_TTS_MISTRAL_API_BASE_URL', 'https://api.mistral.ai/v1'),
-)
 
 
 ####################################

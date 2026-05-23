@@ -27,12 +27,12 @@
 	import { toast } from 'svelte-sonner';
 
 	import Controls from './Controls/Controls.svelte';
-	import CallOverlay from './MessageInput/CallOverlay.svelte';
+
 	import Drawer from '../common/Drawer.svelte';
 	import Artifacts from './Artifacts.svelte';
 	import Embeds from './ChatControls/Embeds.svelte';
 	import FileNav from './FileNav.svelte';
-	import PyodideFileNav from './PyodideFileNav.svelte';
+
 	import Overview from './Overview.svelte';
 
 	const i18n = getContext('i18n');
@@ -52,7 +52,7 @@
 	export let files;
 	export let modelId;
 
-	export let codeInterpreterEnabled = false;
+
 
 	export let pane: Pane | null = null;
 
@@ -76,7 +76,7 @@
 			(($terminalServers ?? []).some((t) => t.id && t.id === $selectedTerminalId) ||
 				$user?.role === 'admin' ||
 				($user?.permissions?.features?.direct_tool_servers ?? true))) ||
-		(codeInterpreterEnabled && $config?.code?.interpreter_engine !== 'jupyter');
+			false;
 	$: showOverviewTab = hasMessages;
 
 	// Tab fallback: if active tab becomes hidden, switch to next available
@@ -281,21 +281,7 @@
 			className="min-h-[100dvh] !bg-white dark:!bg-gray-850"
 		>
 			<div class="h-[100dvh] flex flex-col">
-				{#if $showCallOverlay}
-					<div
-						class="h-full max-h-[100dvh] bg-white text-gray-700 dark:bg-black dark:text-gray-300 flex justify-center"
-					>
-						<CallOverlay
-							bind:files
-							{submitPrompt}
-							{stopResponse}
-							{modelId}
-							{chatId}
-							{eventTarget}
-							on:close={() => showControls.set(false)}
-						/>
-					</div>
-				{:else if $showEmbeds}
+					{#if $showEmbeds}
 					<Embeds />
 				{:else if $showArtifacts}
 					<Artifacts {history} />
@@ -373,11 +359,9 @@
 									}}
 									onClose={() => showControls.set(false)}
 								/>
-							{:else if activeTab === 'files' && $selectedTerminalId}
-								<FileNav onAttach={handleTerminalAttach} {chatId} />
-							{:else if activeTab === 'files' && codeInterpreterEnabled}
-								<PyodideFileNav />
-							{:else}
+								{:else if activeTab === 'files' && $selectedTerminalId}
+									<FileNav onAttach={handleTerminalAttach} {chatId} />
+								{:else}
 								<Controls embed={true} {models} bind:chatFiles bind:params />
 							{/if}
 						</div>
@@ -429,19 +413,7 @@
 						: 'overflow-y-auto'} scrollbar-hidden"
 					id="controls-container"
 				>
-					{#if $showCallOverlay}
-						<div class="w-full h-full flex justify-center">
-							<CallOverlay
-								bind:files
-								{submitPrompt}
-								{stopResponse}
-								{modelId}
-								{chatId}
-								{eventTarget}
-								on:close={() => showControls.set(false)}
-							/>
-						</div>
-					{:else if $showEmbeds}
+						{#if $showEmbeds}
 						<Embeds overlay={dragged} />
 					{:else if $showArtifacts}
 						<Artifacts {history} overlay={dragged} />

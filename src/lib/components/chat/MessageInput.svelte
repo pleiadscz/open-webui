@@ -15,7 +15,7 @@
 
 	import { createPicker, getAuthToken } from '$lib/utils/google-drive-picker';
 	import { pickAndDownloadFile } from '$lib/utils/onedrive-file-picker';
-	import { KokoroWorker } from '$lib/workers/KokoroWorker';
+
 
 	const dispatch = createEventDispatcher();
 
@@ -25,7 +25,7 @@
 		settings,
 		models,
 		config,
-		showCallOverlay,
+
 		tools,
 		toolServers,
 		terminalServers,
@@ -33,7 +33,7 @@
 		showControls,
 		showSettings,
 		selectedTerminalId,
-		TTSWorker,
+
 		temporaryChatEnabled
 	} from '$lib/stores';
 
@@ -135,7 +135,7 @@
 
 	export let imageGenerationEnabled = false;
 	export let webSearchEnabled = false;
-	export let codeInterpreterEnabled = false;
+
 
 	export let pendingOAuthTools = [];
 
@@ -420,7 +420,7 @@
 	let showTools = false;
 
 	let loaded = false;
-	let recording = false;
+
 
 	let isComposing = false;
 	// Safari has a bug where compositionend is not triggered correctly #16615
@@ -487,13 +487,7 @@
 			$models.find((m) => m.id === model)?.info?.meta?.capabilities?.image_generation ?? true
 	);
 
-	let codeInterpreterCapableModels = [];
-	$: codeInterpreterCapableModels = (
-		atSelectedModel?.id ? [atSelectedModel.id] : selectedModels
-	).filter(
-		(model) =>
-			$models.find((m) => m.id === model)?.info?.meta?.capabilities?.code_interpreter ?? true
-	);
+
 
 	let terminalCapableModels = [];
 	$: terminalCapableModels = (atSelectedModel?.id ? [atSelectedModel.id] : selectedModels).filter(
@@ -1536,7 +1530,7 @@
 
 															webSearchEnabled = false;
 															imageGenerationEnabled = false;
-															codeInterpreterEnabled = false;
+												 = false;
 														}
 													}}
 													on:paste={async (e) => {
