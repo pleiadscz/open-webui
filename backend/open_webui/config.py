@@ -2176,7 +2176,7 @@ ENABLE_CODE_EXECUTION = PersistentConfig(
 CODE_EXECUTION_ENGINE = PersistentConfig(
     'CODE_EXECUTION_ENGINE',
     'code_execution.engine',
-    os.environ.get('CODE_EXECUTION_ENGINE', 'pyodide'),
+    os.environ.get('CODE_EXECUTION_ENGINE', 'jupyter'),
 )
 
 CODE_EXECUTION_JUPYTER_URL = PersistentConfig(
@@ -2225,7 +2225,7 @@ ENABLE_MEMORIES = PersistentConfig(
 CODE_INTERPRETER_ENGINE = PersistentConfig(
     'CODE_INTERPRETER_ENGINE',
     'code_interpreter.engine',
-    os.environ.get('CODE_INTERPRETER_ENGINE', 'pyodide'),
+    os.environ.get('CODE_INTERPRETER_ENGINE', 'jupyter'),
 )
 
 CODE_INTERPRETER_PROMPT_TEMPLATE = PersistentConfig(
@@ -2300,20 +2300,7 @@ You have access to a Python code interpreter via: `<code_interpreter type="code"
 
 Ensure the code interpreter is effectively utilized to achieve the highest-quality analysis for the user."""
 
-# Appended to the code interpreter prompt only when engine is pyodide (not jupyter)
-CODE_INTERPRETER_PYODIDE_PROMPT = """
-
-##### Pyodide Environment
-
-- This Python environment runs via Pyodide in the browser. **Do not install packages** — `pip install`, `subprocess`, and `micropip.install()` are not available.
-- If a required library is unavailable, use an alternative approach with available modules. Do not attempt to install anything.
-
-##### Persistent File System
-
-- User-uploaded files are available at `/mnt/uploads/`. When the user asks you to work with their files, read from this directory.
-- You can also write output files to `/mnt/uploads/` so the user can access and download them from the file browser.
-- The file system persists across code executions within the same session.
-- Use `import os; os.listdir('/mnt/uploads')` to discover available files."""
+CODE_INTERPRETER_PYODIDE_PROMPT = ""
 
 
 ####################################
