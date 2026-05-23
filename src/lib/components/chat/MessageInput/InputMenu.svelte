@@ -3,8 +3,7 @@
 	import { fly } from 'svelte/transition';
 
 	import { config, user, tools as _tools, mobile, knowledge } from '$lib/stores';
-	import { getKnowledgeBases } from '$lib/apis/knowledge';
-
+	
 	import { createPicker } from '$lib/utils/google-drive-picker';
 
 	import Dropdown from '$lib/components/common/Dropdown.svelte';
@@ -24,8 +23,7 @@
 	import Chats from './InputMenu/Chats.svelte';
 	import Files from './InputMenu/Files.svelte';
 	import Notes from './InputMenu/Notes.svelte';
-	import Knowledge from './InputMenu/Knowledge.svelte';
-	import AttachWebpageModal from './AttachWebpageModal.svelte';
+		import AttachWebpageModal from './AttachWebpageModal.svelte';
 	import GlobeAlt from '$lib/components/icons/GlobeAlt.svelte';
 
 	const i18n = getContext('i18n');
