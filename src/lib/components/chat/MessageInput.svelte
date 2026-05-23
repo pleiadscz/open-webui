@@ -1528,10 +1528,9 @@
 															selectedToolIds = [];
 															selectedFilterIds = [];
 
-															webSearchEnabled = false;
-															imageGenerationEnabled = false;
-												 = false;
-														}
+																webSearchEnabled = false;
+																imageGenerationEnabled = false;
+															}
 													}}
 													on:paste={async (e) => {
 														e = e.detail.event;
