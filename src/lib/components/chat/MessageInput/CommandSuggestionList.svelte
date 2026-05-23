@@ -1,7 +1,6 @@
 <script lang="ts">
 	import Prompts from './Commands/Prompts.svelte';
-	import Knowledge from './Commands/Knowledge.svelte';
-	import Models from './Commands/Models.svelte';
+		import Models from './Commands/Models.svelte';
 	import Skills from './Commands/Skills.svelte';
 	import Emojis from './Commands/Emojis.svelte';
 

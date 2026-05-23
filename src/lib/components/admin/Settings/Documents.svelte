@@ -17,8 +17,7 @@
 		updateRAGConfig
 	} from '$lib/apis/retrieval';
 
-	import { reindexKnowledgeFiles } from '$lib/apis/knowledge';
-	import { deleteAllFiles } from '$lib/apis/files';
+		import { deleteAllFiles } from '$lib/apis/files';
 
 	import ResetUploadDirConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import ResetVectorDBConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
