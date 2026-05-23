@@ -90,7 +90,6 @@
 	import TerminalMenu from './MessageInput/TerminalMenu.svelte';
 	import Component from '../icons/Component.svelte';
 		import PlusAlt from '../icons/PlusAlt.svelte';
-import { Plus, ArrowUp, Square, Globe } from 'lucide-svelte';
 		import Dropdown from '../common/Dropdown.svelte';
 
 		import CommandSuggestionList from './MessageInput/CommandSuggestionList.svelte';
@@ -1303,7 +1302,7 @@ import { Plus, ArrowUp, Square, Globe } from 'lucide-svelte';
 										data-plus-trigger
 										class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
 									>
-										<Plus class="h-5 w-5" strokeWidth={2} />
+										<PlusAlt className="h-5 w-5" />
 									</button>
 
 									{#if openPlusMenu}
@@ -1359,7 +1358,7 @@ import { Plus, ArrowUp, Square, Globe } from 'lucide-svelte';
 														? 'text-blue-500'
 														: 'text-neutral-500 dark:text-neutral-400'}"
 												>
-													<Globe class="h-5 w-5" strokeWidth={1.75} />
+													<GlobeAlt className="h-5 w-5" strokeWidth="1.75" />
 												</span>
 												Web search
 											</button>
@@ -1374,7 +1373,7 @@ import { Plus, ArrowUp, Square, Globe } from 'lucide-svelte';
 										on:click={() => (openPlusMenu = true)}
 										class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
 									>
-										<Plus class="h-5 w-5" strokeWidth={2} />
+										<PlusAlt className="h-5 w-5" />
 									</button>
 								{/if}
 
