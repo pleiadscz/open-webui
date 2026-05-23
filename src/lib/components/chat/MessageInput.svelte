@@ -93,8 +93,6 @@
 import { Plus, ArrowUp, Square, Globe } from 'lucide-svelte';
 		import Dropdown from '../common/Dropdown.svelte';
 
-		import { Plus, ArrowUp, Square, Globe } from 'lucide-svelte';
-
 		import CommandSuggestionList from './MessageInput/CommandSuggestionList.svelte';
 	import Knobs from '../icons/Knobs.svelte';
 	import ValvesModal from '../workspace/common/ValvesModal.svelte';
