@@ -1252,6 +1252,7 @@ import { Plus, ArrowUp, Square, Globe } from 'lucide-svelte';
 
 
 							<form
+									id="chat-input-form"
 							class="w-full flex flex-col gap-1.5"
 							on:submit|preventDefault={() => {
 								// check if selectedModels support image input
@@ -1528,169 +1529,25 @@ import { Plus, ArrowUp, Square, Globe } from 'lucide-svelte';
 									{/if}
 
 									{#if suggestions}
-										{#key $settings?.richTextInput ?? true}
-											{#key $settings?.showFormattingToolbar ?? false}
-												<RichTextInput
-													bind:this={chatInputElement}
-													id="chat-input"
-													editable={!showInputModal}
-													onChange={(content) => {
-														prompt = content.md;
-														inputContent = content;
-														command = getCommand();
-													}}
-													json={true}
-													richText={$settings?.richTextInput ?? true}
-													messageInput={true}
-													showFormattingToolbar={$settings?.showFormattingToolbar ?? false}
-													floatingMenuPlacement={'top-start'}
-													insertPromptAsRichText={$settings?.insertPromptAsRichText ?? false}
-													shiftEnter={!($settings?.ctrlEnterToSend ?? false) &&
-														!$mobile &&
-														!(
-															'ontouchstart' in window ||
-															navigator.maxTouchPoints > 0 ||
-															navigator.msMaxTouchPoints > 0
-														)}
-														placeholder={placeholder ? placeholder : 'Zapytaj o cokolwiek'}
-													largeTextAsFile={($settings?.largeTextAsFile ?? false) && !shiftKey}
-													autocomplete={$config?.features?.enable_autocomplete_generation &&
-														($settings?.promptAutocomplete ?? false)}
-													generateAutoCompletion={async (text) => {
-														if (selectedModelIds.length === 0 || !selectedModelIds.at(0)) {
-															toast.error($i18n.t('Please select a model first.'));
-														}
-
-														const res = await generateAutoCompletion(
-															localStorage.token,
-															selectedModelIds.at(0),
-															text,
-															history?.currentId
-																? createMessagesList(history, history.currentId)
-																: null
-														).catch((error) => {
-															console.log(error);
-
-															return null;
-														});
-
-														console.log(res);
-														return res;
-													}}
-													{suggestions}
-													oncompositionstart={() => (isComposing = true)}
-													oncompositionend={(e) => {
-														compositionEndedAt = e.timeStamp;
-														isComposing = false;
-													}}
-													on:keydown={async (e) => {
-														e = e.detail.event;
-
-														const isCtrlPressed = e.ctrlKey || e.metaKey; // metaKey is for Cmd key on Mac
-														const suggestionsContainerElement =
-															document.getElementById('suggestions-container');
-
-														if (e.key === 'Escape') {
-															stopResponse();
-														}
-
-														if (prompt === '' && e.key == 'ArrowUp') {
-															e.preventDefault();
-
-															const userMessageElement = [
-																...document.getElementsByClassName('user-message')
-															]?.at(-1);
-
-															if (userMessageElement) {
-																userMessageElement.scrollIntoView({ block: 'center' });
-																const editButton = [
-																	...document.getElementsByClassName('edit-user-message-button')
-																]?.at(-1);
-
-																editButton?.click();
-															}
-														}
-
-														if (!suggestionsContainerElement) {
-															if (
-																!$mobile ||
-																!(
-																	'ontouchstart' in window ||
-																	navigator.maxTouchPoints > 0 ||
-																	navigator.msMaxTouchPoints > 0
-																)
-															) {
-																if (inOrNearComposition(e)) {
-																	return;
-																}
-
-																// Uses keyCode '13' for Enter key for chinese/japanese keyboards.
-																//
-																// Depending on the user's settings, it will send the message
-																// either when Enter is pressed or when Ctrl+Enter is pressed.
-																const enterPressed =
-																	($settings?.ctrlEnterToSend ?? false)
-																		? (e.key === 'Enter' || e.keyCode === 13) && isCtrlPressed
-																		: (e.key === 'Enter' || e.keyCode === 13) && !e.shiftKey;
-
-																if (enterPressed) {
-																	e.preventDefault();
-																	if (prompt !== '' || files.length > 0) {
-																		dispatch('submit', prompt);
-																	}
-																}
-															}
-														}
-
-														if (e.key === 'Escape') {
-															console.log('Escape');
-															atSelectedModel = undefined;
-															selectedToolIds = [];
-															selectedFilterIds = [];
-
-																webSearchEnabled = false;
-																imageGenerationEnabled = false;
-															}
-													}}
-													on:paste={async (e) => {
-														e = e.detail.event;
-														console.log(e);
-
-														const clipboardData = e.clipboardData || window.clipboardData;
-
-														if (clipboardData && clipboardData.items) {
-															for (const item of clipboardData.items) {
-																if (item.type === 'text/plain') {
-																	if (($settings?.largeTextAsFile ?? false) && !shiftKey) {
-																		const text = clipboardData.getData('text/plain');
-
-																		if (text.length > PASTED_TEXT_CHARACTER_LIMIT) {
-																			e.preventDefault();
-																			const blob = new Blob([text], { type: 'text/plain' });
-																			const file = new File(
-																				[blob],
-																				`Pasted_Text_${Date.now()}.txt`,
-																				{
-																					type: 'text/plain'
-																				}
-																			);
-
-																			await uploadFileHandler(file, true, { context: 'full' });
-																		}
-																	}
-																} else {
-																	const file = item.getAsFile();
-																	if (file) {
-																		await inputFilesHandler([file]);
-																		e.preventDefault();
-																	}
-																}
-															}
-														}
-													}}
-												/>
-											{/key}
-										{/key}
+										<input
+											id="chat-input"
+											type="text"
+											value={prompt}
+											on:input={(e) => {
+												prompt = e.currentTarget.value;
+												command = prompt.split(/\s+/).at(-1) ?? '';
+											}}
+											on:keydown={(e) => {
+												if (e.key === 'Enter' && !e.shiftKey && !(e.ctrlKey || e.metaKey)) {
+													e.preventDefault();
+													if ((prompt ?? '').trim() !== '') {
+														document.getElementById('chat-input-form')?.dispatchEvent(new Event('submit', { cancelable: true }));
+													}
+												}
+											}}
+											placeholder={placeholder ? placeholder : 'Zapytaj o cokolwiek'}
+											class="w-full bg-transparent px-1 py-2 text-[15px] text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-500 dark:placeholder:text-neutral-400 focus:outline-none"
+										/>
 									{/if}
 								</div>
 							</div>
