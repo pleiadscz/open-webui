@@ -32,6 +32,7 @@
 		user as _user,
 		showControls,
 		showSettings,
+		showCallOverlay,
 		selectedTerminalId,
 
 		temporaryChatEnabled
